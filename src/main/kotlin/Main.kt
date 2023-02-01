@@ -1,9 +1,15 @@
 package sorting
 
+import java.io.File
+
+var INPUT = ""
+var OUTPUT = ""
+
 fun main(args: Array<String>) {
     val sortCount = args.contains("-sortingType") && args.contains("byCount")
     if (commandsOkay(args)) {
-        val lines = generateSequence(::readLine).toList()
+        val lines = if (INPUT == "") generateSequence(::readLine).toList() else File(INPUT).readLines()
+
         when {
             args.contains("long") -> numbers(lines, sortCount)
             args.contains("line") -> lines(lines, sortCount)
@@ -18,6 +24,7 @@ fun commandsOkay(args: Array<String>): Boolean {
 
     for (i in args.indices) {
         val last = i == args.lastIndex
+
         when (args[i]) {
             "-sortingType" -> if (last || !sortType.contains(args[i + 1])) {
                 println("No sorting type defined!")
@@ -27,7 +34,24 @@ fun commandsOkay(args: Array<String>): Boolean {
                 println("No sorting type defined!")
                 return false
             }
-            else -> if (!(sortType + dataType).contains(args[i]))
+            "-inputFile" -> if (last || !File(args[i + 1]).isFile) {
+                println("${args[i + 1]} is not a file.")
+                return false
+            } else INPUT = args[i + 1]
+            "-outputFile" -> if (last) {
+                println("A filename was not given.")
+                return false
+            } else try {
+                File(args[i + 1]).writeText("")
+                OUTPUT = args[i + 1]
+            } catch (e: Exception) {
+                println(
+                    "There was an error in writing to your file. Please ensure it is not set to read only or open" +
+                            "in another program."
+                )
+                return false
+            }
+            else -> if (!(sortType + dataType).contains(args[i]) && args[i] != INPUT && args[i] != OUTPUT)
                 println("\"${args[i]}\" is not a valid parameter. It will be skipped.")
         }
     }
@@ -40,21 +64,20 @@ fun numbers(lines: List<String>, sortCount: Boolean) {
 
     for (line in lines) filterLine(line).map { it.toLongOrNull() ?: error(it) }
         .forEach { if (it != null) numbers.add(it) }
-    println("Total numbers: ${numbers.size}.")
+    output("Total numbers: ${numbers.size}.\n")
     if (sortCount) {
         val percent = { count: Int -> count * 100 / numbers.size }
         val mapCount = mutableMapOf<Int, MutableList<Long>>()
         for (number in numbers) {
             val count = numbers.count { it == number }
-            if (mapCount.containsKey(count) && !mapCount[count]?.contains(number)!!) mapCount[count]?.add(number)
-            else {
+            if (mapCount.containsKey(count) && !mapCount[count]?.contains(number)!!) mapCount[count]?.add(number) else {
                 mapCount[count] = mutableListOf(number)
             }
         }
         val counts = mapCount.keys.toList().sorted()
         for (count in counts) {
             val numbs = mapCount[count]?.sorted() ?: break
-            for (numb in numbs) println("$numb: $count time(s), ${percent(count)}%")
+            for (numb in numbs) output("$numb: $count time(s), ${percent(count)}%\n")
         }
     } else {
         numbers.sort()
@@ -64,7 +87,7 @@ fun numbers(lines: List<String>, sortCount: Boolean) {
 }
 
 fun lines(lines: List<String>, sortCount: Boolean) {
-    println("Total lines: ${lines.size}.")
+    output("Total lines: ${lines.size}.\n")
     if (sortCount) {
         printStringsCount(lines)
     } else {
@@ -78,7 +101,7 @@ fun words(lines: List<String>, sortCount: Boolean) {
     val words = mutableListOf<String>()
 
     for (line in lines) filterLine(line).map { it }.forEach { words.add(it) }
-    println("Total words: ${words.size}.")
+    output("Total words: ${words.size}.\n")
     if (sortCount) {
         printStringsCount(words)
     } else {
@@ -90,11 +113,11 @@ fun words(lines: List<String>, sortCount: Boolean) {
 
 fun filterLine(line: String) = line.replace("\\s+".toRegex(), " ").split(" ")
 
-fun printSort(add: String = "") = print("Sorted data: $add")
+fun printSort(add: String = "") = output("Sorted data: $add")
 
 fun printList(list: List<Any>, line: Boolean = false) {
-    for (i in list.indices) print("${list[i]}" + if (i != list.lastIndex) if (line) "\n" else " " else "")
-    println()
+    for (i in list.indices) output("${list[i]}" + if (i != list.lastIndex) if (line) "\n" else " " else "")
+    output("\n")
 }
 
 fun printStringsCount(strings: List<String>) {
@@ -110,6 +133,8 @@ fun printStringsCount(strings: List<String>) {
     val counts = mapCount.keys.toList().sorted()
     for (count in counts) {
         val strings2 = mapCount[count]?.sorted() ?: break
-        for (string in strings2) println("$string: $count time(s), ${percent(count)}%")
+        for (string in strings2) output("$string: $count time(s), ${percent(count)}%\n")
     }
 }
+
+fun output(string: String) = if (OUTPUT == "") print(string) else File(OUTPUT).appendText(string)
